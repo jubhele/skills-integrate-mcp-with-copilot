@@ -9,6 +9,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 import os
+import re
 from pathlib import Path
 
 app = FastAPI(title="Mergington High School API",
@@ -18,6 +19,9 @@ app = FastAPI(title="Mergington High School API",
 current_dir = Path(__file__).parent
 app.mount("/static", StaticFiles(directory=os.path.join(Path(__file__).parent,
           "static")), name="static")
+
+# Simple email validation pattern
+EMAIL_PATTERN = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
 
 # In-memory activity database
 activities = {
@@ -108,6 +112,24 @@ def signup_for_activity(activity_name: str, email: str):
     # Add student
     activity["participants"].append(email)
     return {"message": f"Signed up {email} for {activity_name}"}
+
+
+@app.get("/sessions/{email}")
+def get_student_sessions(email: str):
+    """Get all activities a student is signed up for"""
+    # Validate email format
+    if not EMAIL_PATTERN.match(email):
+        raise HTTPException(status_code=400, detail="Invalid email format")
+    
+    student_activities = []
+    for activity_name, activity in activities.items():
+        if email in activity["participants"]:
+            student_activities.append({
+                "name": activity_name,
+                "description": activity["description"],
+                "schedule": activity["schedule"]
+            })
+    return {"email": email, "sessions": student_activities}
 
 
 @app.delete("/activities/{activity_name}/unregister")

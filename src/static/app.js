@@ -3,6 +3,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const activitySelect = document.getElementById("activity");
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
+  const sessionsForm = document.getElementById("sessions-form");
+  const sessionsList = document.getElementById("sessions-list");
 
   // Function to fetch activities from API
   async function fetchActivities() {
@@ -152,6 +154,71 @@ document.addEventListener("DOMContentLoaded", () => {
       messageDiv.className = "error";
       messageDiv.classList.remove("hidden");
       console.error("Error signing up:", error);
+    }
+  });
+
+  // Handle sessions form submission
+  sessionsForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const email = document.getElementById("sessions-email").value;
+
+    try {
+      const response = await fetch(
+        `/sessions/${encodeURIComponent(email)}`
+      );
+
+      const result = await response.json();
+
+      if (response.ok) {
+        if (result.sessions.length === 0) {
+          sessionsList.innerHTML = "<p><em>You are not signed up for any activities.</em></p>";
+        } else {
+          // Clear previous content and build DOM elements safely
+          sessionsList.innerHTML = "";
+          
+          const heading = document.createElement("h4");
+          heading.textContent = "Your Activities:";
+          sessionsList.appendChild(heading);
+          
+          const list = document.createElement("ul");
+          list.className = "sessions-list";
+          
+          result.sessions.forEach((session) => {
+            const li = document.createElement("li");
+            
+            const nameStrong = document.createElement("strong");
+            nameStrong.textContent = session.name;
+            li.appendChild(nameStrong);
+            
+            const descP = document.createElement("p");
+            descP.textContent = session.description;
+            li.appendChild(descP);
+            
+            const scheduleP = document.createElement("p");
+            const scheduleEm = document.createElement("em");
+            scheduleEm.textContent = session.schedule;
+            scheduleP.appendChild(scheduleEm);
+            li.appendChild(scheduleP);
+            
+            list.appendChild(li);
+          });
+          
+          sessionsList.appendChild(list);
+        }
+        sessionsList.classList.remove("hidden");
+      } else {
+        const errorP = document.createElement("p");
+        errorP.className = "error";
+        errorP.textContent = result.detail || "An error occurred";
+        sessionsList.innerHTML = "";
+        sessionsList.appendChild(errorP);
+        sessionsList.classList.remove("hidden");
+      }
+    } catch (error) {
+      sessionsList.innerHTML = "<p class='error'>Failed to load sessions. Please try again.</p>";
+      sessionsList.classList.remove("hidden");
+      console.error("Error fetching sessions:", error);
     }
   });
 
